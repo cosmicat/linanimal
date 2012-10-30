@@ -1,58 +1,65 @@
 using UnityEngine;
 using System.Collections;
 
-public class FootScript : MonoBehaviour {
+public class InflatableMonoBehaviour : MonoBehaviour
+{
 
     SphereCollider mCollider;
-    float radiusFactor;
     Vector3 mBaseScale;
+    float mBaseColliderRadius;
     public KeyCode inflateKey;
     Vector3 mLastPosition = Vector3.zero;
     Vector3 mLastDirection = Vector3.zero;
-
     bool inflating;
-    float inflateState = 0;
 
-	// Use this for initialization
-	void Start () 
+    PhysicMaterial mPhysicsMaterial;
+
+    AnimalTimer mInflatingTimer = new AnimalTimer(0, 1);
+
+    // Use this for initialization
+    void Start()
     {
-        //gameObject.AddComponent<Rigidbody>();
         mCollider = GetComponent<SphereCollider>();
         this.mBaseScale = transform.localScale;
-        radiusFactor = 1.0f;
+        mBaseColliderRadius = mCollider.radius;
         inflating = false;
-	}
-	
-	// Update is called once per frame
-	void Update () 
-    {
-        if (Input.GetKeyDown(inflateKey))
-        {
-            this.inflate();
-            this.inflating = true;
-        }
-        
-        if (Input.GetKeyUp(inflateKey))
-        {
-            //this.deflate();
-            this.inflating = false;
-        }
 
+    }
+
+    public void inflate(bool aInflate = true)
+    {
+        inflating = aInflate;
+    }
+    float get_inflate_mutiplier()
+    {
+        return (1 + 1 * mInflatingTimer.getSquare());
+    }
+    float get_absolute_radius()
+    {
+        Vector3 relScale = new Vector3(transform.localScale.x / mBaseScale.x, transform.localScale.y / mBaseScale.y, transform.localScale.z / mBaseScale.z);
+        float[] asdf = { relScale.x, relScale.y, relScale.z };
+        return Mathf.Max(asdf) * get_inflate_mutiplier();
+    }
+    // Update is called once per frame
+    void Update()
+    {
         if (inflating)
         {
-            inflateState += 5 * Time.deltaTime;
-            inflateState = Mathf.Clamp01(inflateState + 3 * Time.deltaTime);
-            this.inflate();
+            mInflatingTimer.update(8 * Time.deltaTime);
+            this.apply_forces();
+            if (mInflatingTimer.isExpired())
+                inflating = false;
         }
         else
         {
-            inflateState = Mathf.Clamp01(inflateState - Time.deltaTime);
+            mInflatingTimer.update(-8*Time.deltaTime);
         }
 
-        transform.localScale = mBaseScale * (1 + 2*inflateState);
+        transform.localScale = mBaseScale * get_inflate_mutiplier();
+        mCollider.radius = mBaseColliderRadius / get_inflate_mutiplier();
 
-        Debug.DrawLine(mLastPosition, mLastPosition + mLastDirection * 100,Color.red);
-	}
+        Debug.DrawLine(mLastPosition, mLastPosition + mLastDirection * 100, Color.red);
+    }
 
     void OnGUI()
     {
@@ -67,13 +74,12 @@ public class FootScript : MonoBehaviour {
         }
     }
 
-    void inflate()
+    void apply_forces()
     {
         //print(inflateKey + "inflate! ");
         //this.mCollider.radius = 2.5f * baseRadius;
 
-        
-        if (inflateState < 1)
+        if (!mInflatingTimer.isExpired())
         {
             Vector3 force = Vector3.zero;
             float divisor = 0;
@@ -82,7 +88,7 @@ public class FootScript : MonoBehaviour {
                 Vector3 castDir = new Vector3(Mathf.Cos(i / 10.0f * Mathf.PI * 2), Mathf.Sin(i / 10.0f * Mathf.PI * 2), 0);
                 Ray ray = new Ray(transform.position, castDir);
                 RaycastHit hitInfo;
-                if (Physics.Raycast(ray, out hitInfo, 1, 1 << 8))
+                if (Physics.Raycast(ray, out hitInfo, get_absolute_radius()+0.2f, 1 << 8)) // todod radius thingy iss wrong
                 {
                     float coeff = 1 / (hitInfo.distance + 1);
                     divisor += coeff;
@@ -92,19 +98,16 @@ public class FootScript : MonoBehaviour {
 
             if (divisor > 0.0)
             {
-                print("go!");
                 force /= divisor;
                 mLastDirection = force.normalized;
                 mLastPosition = transform.position;
-                collider.attachedRigidbody.AddForceAtPosition(3f * force, transform.position, ForceMode.Impulse);
+                collider.attachedRigidbody.AddForceAtPosition(60f * force, transform.position, ForceMode.Force);
             }
         }
-
+         
     }
 
-    void deflate()
+    void OnCollisionStay(Collision c)
     {
-        inflating = false;
-        //this.mCollider.radius = baseRadius;
     }
 }
