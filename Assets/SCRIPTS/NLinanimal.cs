@@ -25,6 +25,5 @@ public class NLinanimal : MonoBehaviour {
             if (Input.GetKeyUp(inflate.inflateKey))
                 inflate.inflate(false);
         }
-
     }
 }

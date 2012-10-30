@@ -34,11 +34,15 @@ public class InflatableMonoBehaviour : MonoBehaviour
     {
         return (1 + 1 * mInflatingTimer.getSquare());
     }
+    float get_inflate_rate()
+    {
+        return mInflatingTimer.getLinear() * 2 * 8 * Time.deltaTime;
+    }
     float get_absolute_radius()
     {
         Vector3 relScale = new Vector3(transform.localScale.x / mBaseScale.x, transform.localScale.y / mBaseScale.y, transform.localScale.z / mBaseScale.z);
         float[] asdf = { relScale.x, relScale.y, relScale.z };
-        return Mathf.Max(asdf) * get_inflate_mutiplier();
+        return Mathf.Max(asdf) * get_inflate_mutiplier()*0.5f;
     }
     // Update is called once per frame
     void Update()
@@ -56,7 +60,7 @@ public class InflatableMonoBehaviour : MonoBehaviour
         }
 
         transform.localScale = mBaseScale * get_inflate_mutiplier();
-        mCollider.radius = mBaseColliderRadius / get_inflate_mutiplier();
+        mCollider.radius = mBaseColliderRadius / get_inflate_mutiplier();// *get_inflate_mutiplier() * get_inflate_mutiplier();
 
         Debug.DrawLine(mLastPosition, mLastPosition + mLastDirection * 100, Color.red);
     }
@@ -78,7 +82,6 @@ public class InflatableMonoBehaviour : MonoBehaviour
     {
         //print(inflateKey + "inflate! ");
         //this.mCollider.radius = 2.5f * baseRadius;
-
         if (!mInflatingTimer.isExpired())
         {
             Vector3 force = Vector3.zero;
@@ -88,7 +91,7 @@ public class InflatableMonoBehaviour : MonoBehaviour
                 Vector3 castDir = new Vector3(Mathf.Cos(i / 10.0f * Mathf.PI * 2), Mathf.Sin(i / 10.0f * Mathf.PI * 2), 0);
                 Ray ray = new Ray(transform.position, castDir);
                 RaycastHit hitInfo;
-                if (Physics.Raycast(ray, out hitInfo, get_absolute_radius()+0.2f, 1 << 8)) // todod radius thingy iss wrong
+                if (Physics.Raycast(ray, out hitInfo, get_absolute_radius()+0.1f, 1 << 8)) // todod radius thingy iss wrong
                 {
                     float coeff = 1 / (hitInfo.distance + 1);
                     divisor += coeff;
@@ -104,10 +107,21 @@ public class InflatableMonoBehaviour : MonoBehaviour
                 collider.attachedRigidbody.AddForceAtPosition(60f * force, transform.position, ForceMode.Force);
             }
         }
-         
     }
 
     void OnCollisionStay(Collision c)
     {
+        /*
+        foreach(ContactPoint e in c.contacts)
+        {
+            Vector3 np = e.point - get_inflate_rate()*e.normal + mCollider.attachedRigidbody.velocity * Time.deltaTime;
+            Vector3 tp = Vector3.Exclude(e.normal, np - e.point) + e.point-np;
+            mCollider.attachedRigidbody.AddForce(tp, ForceMode.VelocityChange);
+
+        }*/
+    }
+    void OnCollisionEnter(Collision c)
+    {
+
     }
 }
